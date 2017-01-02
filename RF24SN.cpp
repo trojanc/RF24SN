@@ -39,6 +39,24 @@ void RF24SN::begin()
 	_radio->setAutoAck(false);
 }
 
+byte RF24SN::subscribe(const char* topic){
+	byte response = -127;
+	RF24SNSubscribeRequest sendPacket;
+	if(strlen(topic) > RF24SN_TOPIC_LENGTH){
+		return -127;
+	}
+	strcpy(sendPacket.topicName, topic);
+	sendPacket.topicName[strlen(topic)] = '\0';
+
+	RF24SNSubscribeResponse responsePacket;
+	bool gotResponse = sendRequest(RF24SN_SUBSCRIBE, &sendPacket, sizeof(RF24SNSubscribeRequest), &responsePacket, sizeof(RF24SNSubscribeResponse), 5);
+	if(gotResponse){
+		response = responsePacket.topicId;
+	}else{
+		Serial.println(F("NO SUBACK"));
+	}
+	return response;
+}
 bool RF24SN::publish(uint8_t sensorId, float value){
 	return publish(sensorId, value, 1);
 }
@@ -47,7 +65,7 @@ bool RF24SN::publish(uint8_t sensorId, float value, int retries)
 {
 	RF24SNPacket sendPacket{sensorId, value};
 	RF24SNPacket responsePacket;
-	bool gotResponse = sendRequest(RF24SN_PUBLISH, &sendPacket, &responsePacket, retries);
+	bool gotResponse = sendRequest(RF24SN_PUBLISH, &sendPacket, sizeof(RF24SNPacket), &responsePacket, sizeof(RF24SNPacket), retries);
 	if(!gotResponse){
 		Serial.println(F("NO PUBACK"));
 	}
@@ -56,17 +74,17 @@ bool RF24SN::publish(uint8_t sensorId, float value, int retries)
 
 
 //send the packet to base, wait for ack-packet received back
-bool RF24SN::sendRequest(uint8_t messageType, RF24SNPacket* requestPacket, RF24SNPacket* responsePacket)
+bool RF24SN::sendRequest(uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen)
 {
 
 	RF24NetworkHeader networkHeader(_config->baseNodeAddress, messageType);
 	//this will be returned at the end. if no ack packet comes back, then "no packet" packet will be returned
-	_network->write(networkHeader, requestPacket, sizeof(RF24SNPacket));
+	_network->write(networkHeader, requestPacket, reqLen);
 #ifdef RF24SN_HAS_LEDS
 	_ledFlags |= LEDF_FLASH_TX;
 	updateLeds();
 #endif
-	bool gotPacket = waitForPacket(getAckType(networkHeader.type), responsePacket);
+	bool gotPacket = waitForPacket(getAckType(networkHeader.type), responsePacket, resLen);
 	return gotPacket;
 }
 
@@ -84,18 +102,33 @@ uint8_t RF24SN::getAckType(uint8_t request){
 	return 0;
 }
 //send the packet to base, wait for ack-packet received back and check it, optionally resent if ack does not match
-bool RF24SN::sendRequest(uint8_t messageType, RF24SNPacket* requestPacket, RF24SNPacket* responsePacket, int retries)
+bool RF24SN::sendRequest(uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen, int retries)
 {
 	bool gotResponse = false;
 	//loop until no retires are left or until successfully acked.
 	for(int transmission = 1; (transmission <= retries) && !gotResponse ; transmission++)
 	{
-		gotResponse = sendRequest(messageType, requestPacket, responsePacket);
+		gotResponse = sendRequest(messageType, requestPacket, reqLen, responsePacket, resLen);
 	}
 
 	return gotResponse;
 }
-void RF24SN::handleIncommingMessage(void){
+
+bool RF24SN::handleMessage(bool swallowInvalid){
+	RF24NetworkHeader header;
+	uint16_t size = _network->peek(header);
+	if(header.type == RF24SN_PUBLISH){
+		RF24SN::handlePublishMessage();
+		return true;
+	}
+	else if(swallowInvalid){
+		_network->read(header, NULL, 0);
+	}
+	return false;
+}
+
+
+void RF24SN::handlePublishMessage(void){
 	RF24NetworkHeader header;
 	RF24SNMessage message;
 	_network->read(header, &message.packet, sizeof(RF24SNPacket));
@@ -110,7 +143,7 @@ void RF24SN::handleIncommingMessage(void){
 }
 
 
-bool RF24SN::waitForPacket(uint8_t type, RF24SNPacket* responsePacket)
+bool RF24SN::waitForPacket(uint8_t type, const void* responsePacket, uint16_t resLen)
 {
 	//wait until response is awailable or until timeout
 	//the timeout period is random as to minimize repeated collisions.
@@ -126,21 +159,17 @@ bool RF24SN::waitForPacket(uint8_t type, RF24SNPacket* responsePacket)
 
 		// Check if there is a packet available
 		if(_network->available()){
-			_network->peek(header);
+			uint16_t size = _network->peek(header);
 #ifdef RF24SN_HAS_LEDS
 	_ledFlags |= LEDF_FLASH_RX;
 	updateLeds();
 #endif
-			// We might receive a publish message while waiting for a ack
-			if(header.type == RF24SN_PUBLISH){
-				RF24SN::handleIncommingMessage();
-			}
-			else if(header.type == type){
-				_network->read(header, responsePacket, sizeof(RF24SNPacket));
+			if(header.type == type){
+				_network->read(header, responsePacket, resLen);
 				return true;
 			}
 			else{
-				_network->read(header, NULL, 0);
+				handleMessage(true);
 			}
 		}
 
@@ -159,18 +188,9 @@ void RF24SN::update(void){
 	_ledFlags |= LEDF_FLASH_RX;
 	updateLeds();
 #endif
-		RF24NetworkHeader header;
-		_network->peek(header);
 
 		// We might receive a publish message while waiting for a ack
-		if(header.type == RF24SN_PUBLISH){
-			RF24SN::handleIncommingMessage();
-		}
-		else{
-			_network->read(header, NULL, 0);
-			Serial.print(F("Inv MSG"));
-			Serial.println(header.type);
-		}
+		handleMessage(true);
 	}
 #ifdef RF24SN_HAS_LEDS
 	updateLeds();

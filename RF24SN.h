@@ -7,8 +7,8 @@
 #ifndef RF24SN_h
 #define RF24SN_h
 
-#include <stdint.h>
 #include <Arduino.h>
+#include <stdint.h>
 #include "RF24.h"
 #include "RF24Network.h"
 
@@ -21,6 +21,11 @@
 #define LEDF_FLASH_RX 0x02
 #endif
 
+// Max length for a topic
+#ifndef RF24SN_TOPIC_LENGTH
+#define RF24SN_TOPIC_LENGTH 20
+#endif
+
 typedef enum {
 	RF24SN_PUBLISH = 0x0C, // Publish / Receive data
 	RF24SN_PUBACK = 0x0D,
@@ -29,6 +34,14 @@ typedef enum {
 	RF24SN_PINGREQ = 0x16,
 	RF24SN_PINGRES = 0x17
 } MsgTypes;
+
+struct __attribute__((__packed__))  RF24SNSubscribeRequest{
+	char topicName[RF24SN_TOPIC_LENGTH]; // name of the topic to subscribe
+};
+
+struct __attribute__((__packed__))  RF24SNSubscribeResponse{
+	byte topicId;		// Id of the topic for publish requests
+};
 
 struct __attribute__((__packed__))  RF24SNPacket{
 	uint8_t sensorId;    //sensor id
@@ -59,7 +72,14 @@ public:
 	void begin(void);
 	bool publish(uint8_t sensorId, float value);
 	bool publish(uint8_t sensorId, float value, int retries);
-	bool subscribe(char* topic);
+
+	/**
+	 * Subscribes for a topic
+	 * Returns the id of the topic which will be used for published messages
+	 *
+	 * returns -127 if failed
+	 */
+	byte subscribe(const char* topic);
 	void update(void);
 
 protected:
@@ -77,14 +97,18 @@ protected:
 	 *
 	 * @return True if the expected response is received in time
 	 */
-	bool sendRequest(uint8_t messageType, RF24SNPacket* requestPacket, RF24SNPacket* responsePacket);
-	bool sendRequest(uint8_t messageType, RF24SNPacket* requestPacket, RF24SNPacket* responsePacket, int retries);
-	bool waitForPacket(uint8_t type, RF24SNPacket* responsePacket);
+	bool sendRequest(uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen);
+	bool sendRequest(uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen, int retries);
+	bool waitForPacket(uint8_t type, const void* responsePacket, uint16_t resLen);
 
+	/**
+	 * Handles any incomming message
+	 */
+	virtual bool handleMessage(bool swallowInvalid = true);
 	/**
 	 * Handle a published message
 	 */
-	void handleIncommingMessage(void);
+	void handlePublishMessage(void);
 
 private:
 
