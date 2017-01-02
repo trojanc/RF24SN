@@ -69,7 +69,7 @@ class RF24SN
 {
 public:
 	RF24SN(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler);
-	void begin(void);
+	virtual void begin(void);
 	bool publish(uint8_t sensorId, float value);
 	bool publish(uint8_t sensorId, float value, int retries);
 

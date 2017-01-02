@@ -11,33 +11,33 @@
 
 // Maximum number of clients that can be registered
 #ifndef RF24SN_MAX_CLIENTS
-#define RF24SN_MAX_CLIENTS 5
+#define RF24SN_MAX_CLIENTS 2
 #endif
 
 // Maximum number of topics a client can register for
 #ifndef RF24SN_MAX_CLIENT_TOPICS
-#define RF24SN_MAX_CLIENT_TOPICS 5
+#define RF24SN_MAX_CLIENT_TOPICS 2
 #endif
 
 
 struct RF24SNTopicRegistration {
 	// Name of the topic on the MQTT protocal
-	char* topicName;
+	String topicName;
 	// ID of the topic on the RF24SN protocal
-	uint8_t topicId;
+	uint8_t topicId = 0;
 };
 
 struct RF24SNClient{
-	uint16_t clientId;
+	uint16_t clientId = 0;
 	RF24SNTopicRegistration topics[RF24SN_MAX_CLIENT_TOPICS];
 	// Number of topics that the client has registered
-	byte topicIndex;
+	byte topicCount = 0;
 };
 
 class RF24SNGateway : public RF24SN {
 public:
 	RF24SNGateway(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler);
-
+	void begin(void);
 protected:
 
 	RF24SNClient clients[RF24SN_MAX_CLIENTS];
