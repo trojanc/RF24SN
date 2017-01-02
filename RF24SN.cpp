@@ -49,7 +49,7 @@ byte RF24SN::subscribe(const char* topic){
 	sendPacket.topicName[strlen(topic)] = '\0';
 
 	RF24SNSubscribeResponse responsePacket;
-	bool gotResponse = sendRequest(RF24SN_SUBSCRIBE, &sendPacket, sizeof(RF24SNSubscribeRequest), &responsePacket, sizeof(RF24SNSubscribeResponse), 5);
+	bool gotResponse = sendRequest(_config->baseNodeAddress, RF24SN_SUBSCRIBE, &sendPacket, sizeof(RF24SNSubscribeRequest), &responsePacket, sizeof(RF24SNSubscribeResponse), 5);
 	if(gotResponse){
 		response = responsePacket.topicId;
 	}else{
@@ -57,15 +57,15 @@ byte RF24SN::subscribe(const char* topic){
 	}
 	return response;
 }
-bool RF24SN::publish(uint8_t sensorId, float value){
-	return publish(sensorId, value, 1);
+bool RF24SN::publish(uint16_t nodeId, uint8_t sensorId, float value){
+	return publish(nodeId, sensorId, value, 1);
 }
 
-bool RF24SN::publish(uint8_t sensorId, float value, int retries)
+bool RF24SN::publish(uint16_t nodeId, uint8_t sensorId, float value, int retries)
 {
 	RF24SNPacket sendPacket{sensorId, value};
 	RF24SNPacket responsePacket;
-	bool gotResponse = sendRequest(RF24SN_PUBLISH, &sendPacket, sizeof(RF24SNPacket), &responsePacket, sizeof(RF24SNPacket), retries);
+	bool gotResponse = sendRequest(nodeId, RF24SN_PUBLISH, &sendPacket, sizeof(RF24SNPacket), &responsePacket, sizeof(RF24SNPacket), retries);
 	if(!gotResponse){
 		Serial.println(F("NO PUBACK"));
 	}
@@ -74,10 +74,10 @@ bool RF24SN::publish(uint8_t sensorId, float value, int retries)
 
 
 //send the packet to base, wait for ack-packet received back
-bool RF24SN::sendRequest(uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen)
+bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen)
 {
 
-	RF24NetworkHeader networkHeader(_config->baseNodeAddress, messageType);
+	RF24NetworkHeader networkHeader(nodeId, messageType);
 	//this will be returned at the end. if no ack packet comes back, then "no packet" packet will be returned
 	_network->write(networkHeader, requestPacket, reqLen);
 #ifdef RF24SN_HAS_LEDS
@@ -86,6 +86,19 @@ bool RF24SN::sendRequest(uint8_t messageType, const void* requestPacket, uint16_
 #endif
 	bool gotPacket = waitForPacket(getAckType(networkHeader.type), responsePacket, resLen);
 	return gotPacket;
+}
+
+//send the packet to base, wait for ack-packet received back and check it, optionally resent if ack does not match
+bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen, int retries)
+{
+	bool gotResponse = false;
+	//loop until no retires are left or until successfully acked.
+	for(int transmission = 1; (transmission <= retries) && !gotResponse ; transmission++)
+	{
+		gotResponse = sendRequest(nodeId, messageType, requestPacket, reqLen, responsePacket, resLen);
+	}
+
+	return gotResponse;
 }
 
 
@@ -101,18 +114,7 @@ uint8_t RF24SN::getAckType(uint8_t request){
 	}
 	return 0;
 }
-//send the packet to base, wait for ack-packet received back and check it, optionally resent if ack does not match
-bool RF24SN::sendRequest(uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen, int retries)
-{
-	bool gotResponse = false;
-	//loop until no retires are left or until successfully acked.
-	for(int transmission = 1; (transmission <= retries) && !gotResponse ; transmission++)
-	{
-		gotResponse = sendRequest(messageType, requestPacket, reqLen, responsePacket, resLen);
-	}
 
-	return gotResponse;
-}
 
 bool RF24SN::handleMessage(bool swallowInvalid){
 	RF24NetworkHeader header;

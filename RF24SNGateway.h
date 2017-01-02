@@ -34,11 +34,18 @@ struct RF24SNClient{
 	byte topicCount = 0;
 };
 
+// Called when a client topic need to be subscribed
+typedef bool (*subsribeHandler)(const char* topic);
+
 class RF24SNGateway : public RF24SN {
 public:
-	RF24SNGateway(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler);
+	RF24SNGateway(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler, subsribeHandler onSubsribeHandler);
 	void begin(void);
+
+	bool checkSubscription(const char* topic, float value);
 protected:
+
+	subsribeHandler _onSubsribeHandler;
 
 	RF24SNClient clients[RF24SN_MAX_CLIENTS];
 

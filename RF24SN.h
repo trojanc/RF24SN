@@ -70,8 +70,8 @@ class RF24SN
 public:
 	RF24SN(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler);
 	virtual void begin(void);
-	bool publish(uint8_t sensorId, float value);
-	bool publish(uint8_t sensorId, float value, int retries);
+	bool publish(uint16_t nodeId, uint8_t sensorId, float value);
+	bool publish(uint16_t nodeId, uint8_t sensorId, float value, int retries);
 
 	/**
 	 * Subscribes for a topic
@@ -97,8 +97,8 @@ protected:
 	 *
 	 * @return True if the expected response is received in time
 	 */
-	bool sendRequest(uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen);
-	bool sendRequest(uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen, int retries);
+	bool sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen);
+	bool sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen, int retries);
 	bool waitForPacket(uint8_t type, const void* responsePacket, uint16_t resLen);
 
 	/**
