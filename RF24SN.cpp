@@ -168,7 +168,7 @@ void RF24SN::update(void){
 		}
 		else{
 			_network->read(header, NULL, 0);
-			Serial.print("Inv MSG");
+			Serial.print(F("Inv MSG"));
 			Serial.println(header.type);
 		}
 	}
