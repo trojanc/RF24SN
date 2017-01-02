@@ -67,7 +67,6 @@ protected:
 	RF24Network* _network;
 	RF24SNConfig* _config;
 	messageHandler _onMessageHandler;
-	void printPacketDetails(RF24SNPacket packet);
 	uint8_t getAckType(uint8_t request);
 
 	/**

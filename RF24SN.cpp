@@ -37,7 +37,6 @@ void RF24SN::begin()
 	_radio->setDataRate(_config->radioDatarate);
 	_radio->setPALevel(_config->radioPaLevel);
 	_radio->setAutoAck(false);
-	_radio->printDetails();
 }
 
 bool RF24SN::publish(uint8_t sensorId, float value){
@@ -176,14 +175,6 @@ void RF24SN::update(void){
 #ifdef RF24SN_HAS_LEDS
 	updateLeds();
 #endif
-}
-
-//utility method to pretty print packet contents
-void RF24SN::printPacketDetails(RF24SNPacket packet){
-	Serial.print("\tsensorId ");
-	Serial.println(packet.sensorId);
-	Serial.print("\tvalue ");
-	Serial.println(packet.value);
 }
 
 #ifdef RF24SN_HAS_LEDS
