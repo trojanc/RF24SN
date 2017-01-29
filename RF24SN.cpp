@@ -74,7 +74,7 @@ bool RF24SN::publish(uint16_t nodeId, uint8_t sensorId, float value, int retries
 
 
 //send the packet to base, wait for ack-packet received back
-bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen)
+bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, void* responsePacket, uint16_t resLen)
 {
 
 	RF24NetworkHeader networkHeader(nodeId, messageType);
@@ -89,7 +89,7 @@ bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* reque
 }
 
 //send the packet to base, wait for ack-packet received back and check it, optionally resent if ack does not match
-bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen, int retries)
+bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, void* responsePacket, uint16_t resLen, int retries)
 {
 	bool gotResponse = false;
 	//loop until no retires are left or until successfully acked.
@@ -118,7 +118,7 @@ uint8_t RF24SN::getAckType(uint8_t request){
 
 bool RF24SN::handleMessage(bool swallowInvalid){
 	RF24NetworkHeader header;
-	uint16_t size = _network->peek(header);
+	_network->peek(header);
 	if(header.type == RF24SN_PUBLISH){
 		RF24SN::handlePublishMessage();
 		return true;
@@ -145,7 +145,7 @@ void RF24SN::handlePublishMessage(void){
 }
 
 
-bool RF24SN::waitForPacket(uint8_t type, const void* responsePacket, uint16_t resLen)
+bool RF24SN::waitForPacket(uint8_t type, void* responsePacket, uint16_t resLen)
 {
 	//wait until response is awailable or until timeout
 	//the timeout period is random as to minimize repeated collisions.
@@ -161,7 +161,7 @@ bool RF24SN::waitForPacket(uint8_t type, const void* responsePacket, uint16_t re
 
 		// Check if there is a packet available
 		if(_network->available()){
-			uint16_t size = _network->peek(header);
+			_network->peek(header);
 #ifdef RF24SN_HAS_LEDS
 	_ledFlags |= LEDF_FLASH_RX;
 	updateLeds();

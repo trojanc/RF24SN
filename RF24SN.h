@@ -97,9 +97,9 @@ protected:
 	 *
 	 * @return True if the expected response is received in time
 	 */
-	bool sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen);
-	bool sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, const void* responsePacket, uint16_t resLen, int retries);
-	bool waitForPacket(uint8_t type, const void* responsePacket, uint16_t resLen);
+	bool sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, void* responsePacket, uint16_t resLen);
+	bool sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, void* responsePacket, uint16_t resLen, int retries);
+	bool waitForPacket(uint8_t type, void* responsePacket, uint16_t resLen);
 
 	/**
 	 * Handles any incomming message
