@@ -152,9 +152,11 @@ bool RF24SNGateway::checkSubscription(const char* topic, float value){
 			if(strcmp(clients[clientIndex].topics[topicIndex].topicName, topic) == 0){
 				IF_RF24SN_DEBUG(
 					Serial.print(F("fwd sbr "));
-					Serial.println(clients[clientIndex].clientId, DEC);
+					Serial.print(clients[clientIndex].clientId, DEC);
+					Serial.print(F(" tpc "));
+					Serial.println(clients[clientIndex].topics[topicIndex].topicId, DEC);
 				);
-				RF24SNPacket requestPacket{36, value}; // TODO check id
+				RF24SNPacket requestPacket{clients[clientIndex].topics[topicIndex].topicId, value};
 				sendRequest(clients[clientIndex].clientId, RF24SN_PUBLISH, &requestPacket, sizeof(RF24SNPacket), NULL, 0);
 				hasClient = true;
 			}

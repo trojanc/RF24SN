@@ -42,7 +42,7 @@ struct __attribute__((__packed__))  RF24SNSubscribeResponse{
 };
 
 struct __attribute__((__packed__))  RF24SNPacket{
-	uint8_t sensorId;    //sensor id
+	uint8_t topicId;    //sensor id
 	float value;         //sensor reading
 };
 
