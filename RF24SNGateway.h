@@ -1,9 +1,3 @@
-/*
-  RF24SN.h - Alternative network library on top of RF24 library and nRF24l01 radio modules
-  Created by Vaclav Synacek, 2014.
-  Released under MIT license
- */
-
 #ifndef RF24SNGateway_h
 #define RF24SNGateway_h
 
@@ -19,10 +13,9 @@
 #define RF24SN_MAX_CLIENT_TOPICS 2
 #endif
 
-
 struct RF24SNTopicRegistration {
 	// Name of the topic on the MQTT protocal
-	String topicName;
+	char topicName[RF24SN_TOPIC_LENGTH];
 	// ID of the topic on the RF24SN protocal
 	uint8_t topicId = 0;
 };
@@ -39,14 +32,31 @@ typedef bool (*subsribeHandler)(const char* topic);
 
 class RF24SNGateway : public RF24SN {
 public:
+
+	/**
+	 * Creates a new instance of the gateway
+	 */
 	RF24SNGateway(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler, subsribeHandler onSubsribeHandler);
+
+	/**
+	 * Begin the gatewat
+	 */
 	void begin(void);
 
+	/**
+	 * Check which clients are subscribed to the topic, and forward the value to them
+	 */
 	bool checkSubscription(const char* topic, float value);
 protected:
 
+	/**
+	 * Handler when a SN client requests to subscribe for a topic
+	 */
 	subsribeHandler _onSubsribeHandler;
 
+	/**
+	 * Reference to the clients connected to this gateway
+	 */
 	RF24SNClient clients[RF24SN_MAX_CLIENTS];
 
 	/**

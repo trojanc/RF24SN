@@ -1,9 +1,3 @@
-/*
-  RF24SN.h - Alternative network library on top of RF24 library and nRF24l01 radio modules
-  Created by Vaclav Synacek, 2014.
-  Released under MIT license
- */
-
 #ifndef RF24SN_h
 #define RF24SN_h
 
@@ -11,9 +5,6 @@
 #include <stdint.h>
 #include "RF24.h"
 #include "RF24Network.h"
-
-//#define PIN_LED_TX 4
-//#define PIN_LED_RX 5
 
 #if defined(PIN_LED_TX) && defined(PIN_LED_RX)
 #define RF24SN_HAS_LEDS
@@ -24,6 +15,13 @@
 // Max length for a topic
 #ifndef RF24SN_TOPIC_LENGTH
 #define RF24SN_TOPIC_LENGTH 20
+#endif
+
+// Define a debug function if configured to debug
+#ifdef RF24SN_DEBUG
+	#define IF_RF24SN_DEBUG(x) ({x;})
+#else
+	#define IF_RF24SN_DEBUG(x)
 #endif
 
 typedef enum {

@@ -1,9 +1,3 @@
-/*
-  RF24SN.cpp - Alternative network library on top of RF24 library and nRF24l01 radio modules
-  Created by Vaclav Synacek, 2014.
-  Released under MIT license
- */
-
 #include "Arduino.h"
 #include "RF24SN.h"
 
@@ -46,14 +40,14 @@ byte RF24SN::subscribe(const char* topic){
 		return -127;
 	}
 	strcpy(sendPacket.topicName, topic);
-	sendPacket.topicName[strlen(topic)] = '\0';
-
+	sendPacket.topicName[strlen(topic)] = '\0'; // TODO is this required?
+	IF_RF24SN_DEBUG(Serial.print(F("Sub ")); Serial.println(sendPacket.topicName););
 	RF24SNSubscribeResponse responsePacket;
 	bool gotResponse = sendRequest(_config->baseNodeAddress, RF24SN_SUBSCRIBE, &sendPacket, sizeof(RF24SNSubscribeRequest), &responsePacket, sizeof(RF24SNSubscribeResponse), 5);
 	if(gotResponse){
 		response = responsePacket.topicId;
 	}else{
-		Serial.println(F("NO SUBACK"));
+		IF_RF24SN_DEBUG(Serial.println(F("NO SUBACK")));
 	}
 	return response;
 }
@@ -67,7 +61,7 @@ bool RF24SN::publish(uint16_t nodeId, uint8_t sensorId, float value, int retries
 	RF24SNPacket responsePacket;
 	bool gotResponse = sendRequest(nodeId, RF24SN_PUBLISH, &sendPacket, sizeof(RF24SNPacket), &responsePacket, sizeof(RF24SNPacket), retries);
 	if(!gotResponse){
-		Serial.println(F("NO PUBACK"));
+		IF_RF24SN_DEBUG(Serial.println(F("NO PUBACK")));
 	}
 	return gotResponse;
 }
@@ -147,7 +141,7 @@ void RF24SN::handlePublishMessage(void){
 
 bool RF24SN::waitForPacket(uint8_t type, void* responsePacket, uint16_t resLen)
 {
-	//wait until response is awailable or until timeout
+	//wait until response is available or until timeout
 	//the timeout period is random as to minimize repeated collisions.
 	unsigned long started_waiting_at = millis();
 	bool timeout = false;

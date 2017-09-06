@@ -1,9 +1,3 @@
-/*
-  RF24SN.cpp - Alternative network library on top of RF24 library and nRF24l01 radio modules
-  Created by Vaclav Synacek, 2014.
-  Released under MIT license
- */
-
 #include "RF24SNGateway.h"
 #include "RF24SN.h"
 
@@ -14,6 +8,7 @@ RF24SNGateway::RF24SNGateway(RF24* radio, RF24Network* network, RF24SNConfig* co
 
 void RF24SNGateway::begin(void){
 	RF24SN::begin();
+	// TODO is this still required?
 	for(int clientIndex = 0 ; clientIndex < RF24SN_MAX_CLIENTS; clientIndex++){
 		for(int topicIndex = 0 ; topicIndex < RF24SN_MAX_CLIENT_TOPICS; topicIndex++){
 			clients[clientIndex].topics[topicIndex].topicName[0] = '\0';
@@ -24,55 +19,91 @@ void RF24SNGateway::begin(void){
 void RF24SNGateway::handleSubscribe(void){
 	RF24NetworkHeader header;
 	RF24SNSubscribeRequest subscribeRequest;
-	RF24SNMessage message;
 
+	// Read the full request
 	_network->read(header, &subscribeRequest, sizeof(RF24SNSubscribeRequest));
 
+	IF_RF24SN_DEBUG(
+		Serial.print(F("Sbcr "));
+		Serial.print(header.from_node);
+		Serial.print(F(" - "));
+		Serial.println(subscribeRequest.topicName);
+	);
+
+	// Index of this client in the list of current clients
 	int clientIndex = 0;
+
+	// Flag if we have found the user yet
 	bool found = false;
-	byte topicId = 0; // Id of the topic to return to the client
+
+	// Id of the topic to return to the client
+	byte topicId = 0;
+
 	// Try and find existing client
+	IF_RF24SN_DEBUG(Serial.print(F("Clnts"));Serial.println(clientCount, DEC););
 	for( ; clientIndex < clientCount; clientIndex++){
 		if(clients[clientIndex].clientId == header.from_node){
 			found = true;
 			break;
 		}
 	}
-
+	IF_RF24SN_DEBUG(
+		Serial.print(F("Clnt fnd: "));
+		Serial.print(found);
+		Serial.print(F(" : "));
+		Serial.println(clientCount, DEC);
+	);
 	// register new client
 	if(!found){
 		if(clientCount < RF24SN_MAX_CLIENTS){
 			clientCount++;
 			clients[clientIndex].clientId = header.from_node;
+			IF_RF24SN_DEBUG(
+				Serial.print(F("Clnt reg : "));
+				Serial.println(clientIndex, DEC);
+				Serial.print(F("Clnt cnt : "));
+				Serial.println(clientCount, DEC);
+			);
 		}else{
-			Serial.println(F("Clnt mx"));
+			IF_RF24SN_DEBUG(Serial.println(F("Clnt mx")););
 			return;
 		}
 	}
 
+	// Index of the topic for the current client
+	int topicIndex = 0;
+
+	// Flag if we have found the topic
+	bool foundTopic = false;
 
 	// Try and find existing topic
-	int topicIndex = 0;
-	bool foundTopic = false;
 	for( ; topicIndex < clients[clientIndex].topicCount; topicIndex++){
-		String topicString = String(clients[clientIndex].topics[topicIndex].topicName);
-		if(topicString == subscribeRequest.topicName){
+		if(strcmp(clients[clientIndex].topics[topicIndex].topicName, subscribeRequest.topicName) == 0){
 			foundTopic = true;
 			break;
 		}
 	}
+	IF_RF24SN_DEBUG(
+		Serial.print(F("tpc fnd: "));
+		Serial.println(foundTopic);
+	);
 	// Register new topic
 	if(!foundTopic){
 		if(clients[clientIndex].topicCount < RF24SN_MAX_CLIENT_TOPICS){
-			bool subcribed = _onSubsribeHandler(subscribeRequest.topicName);
-			clients[clientIndex].topicCount = clients[clientIndex].topicCount + 1;
-			clients[clientIndex].topics[topicIndex].topicName = String(subscribeRequest.topicName);
-			clients[clientIndex].topics[topicIndex].topicId = topicIndex+1;
-			topicId = topicIndex;
-
-
+			// Subscribe to the new topic
+			bool subscribed = _onSubsribeHandler(subscribeRequest.topicName);
+			if(subscribed){
+				clients[clientIndex].topicCount = clients[clientIndex].topicCount + 1;
+				strcpy(clients[clientIndex].topics[topicIndex].topicName, subscribeRequest.topicName);
+				clients[clientIndex].topics[topicIndex].topicId = topicIndex+1;
+				topicId = clients[clientIndex].topics[topicIndex].topicId;
+				IF_RF24SN_DEBUG(
+					Serial.print(F("Tpc reg : "));
+					Serial.println(topicId, DEC);
+				);
+			}
 		}else{
-			Serial.println(F("tpc mx"));
+			IF_RF24SN_DEBUG(Serial.println(F("tpc mx")););
 			return;
 		}
 	}
@@ -80,6 +111,10 @@ void RF24SNGateway::handleSubscribe(void){
 	else{
 		topicId = clients[clientIndex].topics[topicIndex].topicId;
 	}
+	IF_RF24SN_DEBUG(
+		Serial.print(F("tpc id: "));
+		Serial.println(topicId);
+	);
 	// Send back ack
 	delay(100);
 	RF24SNSubscribeResponse response;
@@ -107,11 +142,19 @@ bool RF24SNGateway::handleMessage(bool swallowInvalid){
 }
 
 bool RF24SNGateway::checkSubscription(const char* topic, float value){
+	IF_RF24SN_DEBUG(
+		Serial.print(F("chk sbr "));
+		Serial.println(topic);
+	);
 	bool hasClient = false;
 	for(int clientIndex = 0 ; clientIndex < clientCount; clientIndex++){
 		for(int topicIndex = 0 ; topicIndex < clients[clientIndex].topicCount; topicIndex++){
-			if(clients[clientIndex].topics[topicIndex].topicName  == topic){
-				RF24SNPacket requestPacket{36, value};
+			if(strcmp(clients[clientIndex].topics[topicIndex].topicName, topic) == 0){
+				IF_RF24SN_DEBUG(
+					Serial.print(F("fwd sbr "));
+					Serial.println(clients[clientIndex].clientId, DEC);
+				);
+				RF24SNPacket requestPacket{36, value}; // TODO check id
 				sendRequest(clients[clientIndex].clientId, RF24SN_PUBLISH, &requestPacket, sizeof(RF24SNPacket), NULL, 0);
 				hasClient = true;
 			}
