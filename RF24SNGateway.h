@@ -13,23 +13,49 @@
 #define RF24SN_MAX_CLIENT_TOPICS 2
 #endif
 
+/**
+ * A struct representing a topic that has been registered
+ */
 struct RF24SNTopicRegistration {
-	// Name of the topic on the MQTT protocal
+	/**
+	 * Name of the topic on the MQTT protocol
+	 */
 	char topicName[RF24SN_TOPIC_LENGTH];
-	// ID of the topic on the RF24SN protocal
+
+	/**
+	 * ID of the topic on the RF24SN protocal
+	 */
 	uint8_t topicId = 0;
 };
 
+/**
+ * A struct representing a registered client
+ */
 struct RF24SNClient{
+	/**
+	 * ID of the client
+	 */
 	uint16_t clientId = 0;
+
+	/**
+	 * Array of registered topics for this client
+	 */
 	RF24SNTopicRegistration topics[RF24SN_MAX_CLIENT_TOPICS];
-	// Number of topics that the client has registered
+
+	/**
+	 * Number of topics that the client has registered
+	 */
 	byte topicCount = 0;
 };
 
-// Called when a client topic need to be subscribed
+/**
+ * Called when a client topic need to be subscribed
+ */
 typedef bool (*subsribeHandler)(const char* topic);
 
+/**
+ * A class representing a gateway on a RF24SN Network
+ */
 class RF24SNGateway : public RF24SN {
 public:
 

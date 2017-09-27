@@ -24,6 +24,9 @@
 	#define IF_RF24SN_DEBUG(x)
 #endif
 
+/**
+ * Define the types of messages that can be sent over the RF24SN Network
+ */
 typedef enum {
 	RF24SN_PUBLISH = 0x0C, // Publish / Receive data
 	RF24SN_PUBACK = 0x0D,
@@ -33,13 +36,27 @@ typedef enum {
 	RF24SN_PINGRES = 0x17
 } MsgTypes;
 
+/**
+ * A struct representing a request to subscribe for a topic
+ */
 struct __attribute__((__packed__))  RF24SNSubscribeRequest{
-	char topicName[RF24SN_TOPIC_LENGTH]; // name of the topic to subscribe
+	/**
+	 * Name of the topic to subscribe
+	 */
+	char topicName[RF24SN_TOPIC_LENGTH];
 };
 
+/**
+ * A struct representing a response to a subscribe
+ */
 struct __attribute__((__packed__))  RF24SNSubscribeResponse{
-	byte topicId;		// Id of the topic for publish requests
+	/**
+	 * RF24SN topic ID that will be used to publish messages with for the
+	 * subscribed topic name
+	 */
+	byte topicId;
 };
+
 
 struct __attribute__((__packed__))  RF24SNPacket{
 	uint8_t topicId;    //sensor id
