@@ -19,10 +19,12 @@
 
 // Define a debug function if configured to debug
 #ifdef RF24SN_DEBUG
-	#define IF_RF24SN_DEBUG(x) ({x;})
+#define IF_RF24SN_DEBUG(x) ({x;})
 #else
-	#define IF_RF24SN_DEBUG(x)
+#define IF_RF24SN_DEBUG(x)
 #endif
+
+#define RF24SN_RSP_FAILED -127
 
 /**
  * Define the types of messages that can be sent over the RF24SN Network
@@ -83,18 +85,45 @@ typedef void (*messageHandler)(RF24SNMessage&);
 class RF24SN
 {
 public:
+
+	/**
+	 * Create a new instance of the RF24SN
+	 */
 	RF24SN(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler);
+
+	/**
+	 * Should be called during setup() to configure the network
+	 */
 	virtual void begin(void);
+
+	/**
+	 * Publish a value
+	 * @param nodeId ID of the node to send the message to
+	 * @param sensorId ID of the sensor this reading is for
+	 * @param value The value to send
+	 */
 	bool publish(uint16_t nodeId, uint8_t sensorId, float value);
+
+	/**
+	 * Publish a value
+	 * @param nodeId ID of the node to send the message to
+	 * @param sensorId ID of the sensor this reading is for
+	 * @param value The value to send
+	 * @param retries Number of times to retry sending the value
+	 */
 	bool publish(uint16_t nodeId, uint8_t sensorId, float value, int retries);
 
 	/**
 	 * Subscribes for a topic
 	 * Returns the id of the topic which will be used for published messages
 	 *
-	 * returns -127 if failed
+	 * returns RF24SN_RSP_FAILED (-127) if failed
 	 */
 	byte subscribe(const char* topic);
+
+	/**
+	 * This function should be called regularly to keep the network active
+	 */
 	void update(void);
 
 protected:
@@ -108,7 +137,7 @@ protected:
 	 * Sends a request to the broker
 	 * @param messageType The message type to send in the header
 	 * @param requestPacket Optional request data to send with
-	 * @param responsePacket Optional pointer to where reponse data must be saved
+	 * @param responsePacket Optional pointer to where response data must be saved
 	 *
 	 * @return True if the expected response is received in time
 	 */
@@ -117,9 +146,10 @@ protected:
 	bool waitForPacket(uint8_t type, void* responsePacket, uint16_t resLen);
 
 	/**
-	 * Handles any incomming message
+	 * Handles any incoming message.
 	 */
 	virtual bool handleMessage(bool swallowInvalid = true);
+
 	/**
 	 * Handle a published message
 	 */

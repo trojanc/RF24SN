@@ -155,6 +155,8 @@ bool RF24SNGateway::checkSubscription(const char* topic, float value){
 					Serial.print(clients[clientIndex].clientId, DEC);
 					Serial.print(F(" tpc "));
 					Serial.println(clients[clientIndex].topics[topicIndex].topicId, DEC);
+					Serial.print(F(" cid "));
+					Serial.println(clients[clientIndex].clientId, DEC);
 				);
 				RF24SNPacket requestPacket{clients[clientIndex].topics[topicIndex].topicId, value};
 				sendRequest(clients[clientIndex].clientId, RF24SN_PUBLISH, &requestPacket, sizeof(RF24SNPacket), NULL, 0);

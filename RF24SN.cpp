@@ -14,7 +14,6 @@ RF24SN::RF24SN(RF24* radio, RF24Network* network, RF24SNConfig* config, messageH
 }
 
 
-//initialize underlaying RF24 driver
 void RF24SN::begin()
 {
 
@@ -34,10 +33,10 @@ void RF24SN::begin()
 }
 
 byte RF24SN::subscribe(const char* topic){
-	byte response = -127;
+	byte response = RF24SN_RSP_FAILED;
 	RF24SNSubscribeRequest sendPacket;
 	if(strlen(topic) > RF24SN_TOPIC_LENGTH){
-		return -127;
+		return RF24SN_RSP_FAILED;
 	}
 	strcpy(sendPacket.topicName, topic);
 	sendPacket.topicName[strlen(topic)] = '\0'; // TODO is this required?
