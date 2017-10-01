@@ -102,8 +102,19 @@ void RF24SNGateway::handleSubscribe(void){
 					Serial.println(topicId, DEC);
 				);
 			}
+			else{
+				IF_RF24SN_DEBUG(
+					Serial.println(F("Tpc reg f"));
+				);
+				return; // TODO implement below
+//				RF24NetworkHeader responseHeader(header.from_node, RF24SN_SUBNACK);
+//				_network->write(responseHeader, NULL, 0);
+			}
 		}else{
 			IF_RF24SN_DEBUG(Serial.println(F("tpc mx")););
+			// TODO implement below
+//			RF24NetworkHeader responseHeader(header.from_node, RF24SN_SUBNACK);
+//			_network->write(responseHeader, NULL, 0);
 			return;
 		}
 	}
