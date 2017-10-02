@@ -73,6 +73,13 @@ public:
 	 * Check which clients are subscribed to the topic, and forward the value to them
 	 */
 	bool checkSubscription(const char* topic, float value);
+
+
+	/**
+	 * Clears all saved subscriptions. This should be called when the connection to the
+	 * MQTT server is reset, because all subscriptions are lost from the server.
+	 */
+	void resetSubscriptions(void);
 protected:
 
 	/**
