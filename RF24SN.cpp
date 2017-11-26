@@ -70,8 +70,13 @@ bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* reque
 	_ledFlags |= LEDF_FLASH_TX;
 	updateLeds();
 #endif
-	bool gotPacket = waitForPacket(getAckType(networkHeader.type), responsePacket, resLen);
-	return gotPacket;
+
+	RF24NetworkHeader networkHeader(nodeId, messageType);
+	//this will be returned at the end. if no ack packet comes back, then "no packet" packet will be returned
+	if(!_network->write(networkHeader, requestPacket, reqLen)){
+		return false;
+	}
+	return waitForPacket(getAckType(networkHeader.type), responsePacket, resLen);;
 }
 
 //send the packet to base, wait for ack-packet received back and check it, optionally resent if ack does not match
