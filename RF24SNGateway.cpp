@@ -1,8 +1,7 @@
 #include "RF24SNGateway.h"
 #include "RF24SN.h"
 
-RF24SNGateway::RF24SNGateway(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler, subsribeHandler onSubsribeHandler):RF24SN(radio, network, config, onMessageHandler)
-{
+RF24SNGateway::RF24SNGateway(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler, subsribeHandler onSubsribeHandler):RF24SN(radio, network, config, onMessageHandler){
 	_onSubsribeHandler = onSubsribeHandler;
 }
 
@@ -122,7 +121,6 @@ void RF24SNGateway::handleSubscribe(void){
 	RF24NetworkHeader responseHeader(header.from_node, RF24SN_SUBACK);
 	_network->write(responseHeader, &response, sizeof(RF24SNSubscribeResponse));
 }
-
 
 bool RF24SNGateway::handleMessage(bool swallowInvalid){
 	bool handled = RF24SN::handleMessage(false);

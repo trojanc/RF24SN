@@ -1,8 +1,7 @@
 #include "Arduino.h"
 #include "RF24SN.h"
 
-RF24SN::RF24SN(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler)
-{
+RF24SN::RF24SN(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler){
 	//initialize private variables
 	_radio = radio;
 	_network = network;
@@ -14,9 +13,7 @@ RF24SN::RF24SN(RF24* radio, RF24Network* network, RF24SNConfig* config, messageH
 }
 
 
-void RF24SN::begin()
-{
-
+void RF24SN::begin(){
 #ifdef RF24SN_HAS_LEDS
 	pinMode(PIN_LED_TX, OUTPUT);
 	pinMode(PIN_LED_RX, OUTPUT);
@@ -50,12 +47,12 @@ byte RF24SN::subscribe(const char* topic){
 	}
 	return response;
 }
+
 bool RF24SN::publish(uint16_t nodeId, uint8_t sensorId, float value){
 	return publish(nodeId, sensorId, value, 1);
 }
 
-bool RF24SN::publish(uint16_t nodeId, uint8_t sensorId, float value, int retries)
-{
+bool RF24SN::publish(uint16_t nodeId, uint8_t sensorId, float value, int retries){
 	RF24SNPacket sendPacket{sensorId, value};
 	RF24SNPacket responsePacket;
 	bool gotResponse = sendRequest(nodeId, RF24SN_PUBLISH, &sendPacket, sizeof(RF24SNPacket), &responsePacket, sizeof(RF24SNPacket), retries);
@@ -67,12 +64,8 @@ bool RF24SN::publish(uint16_t nodeId, uint8_t sensorId, float value, int retries
 
 
 //send the packet to base, wait for ack-packet received back
-bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, void* responsePacket, uint16_t resLen)
-{
+bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, void* responsePacket, uint16_t resLen){
 
-	RF24NetworkHeader networkHeader(nodeId, messageType);
-	//this will be returned at the end. if no ack packet comes back, then "no packet" packet will be returned
-	_network->write(networkHeader, requestPacket, reqLen);
 #ifdef RF24SN_HAS_LEDS
 	_ledFlags |= LEDF_FLASH_TX;
 	updateLeds();
@@ -82,15 +75,12 @@ bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* reque
 }
 
 //send the packet to base, wait for ack-packet received back and check it, optionally resent if ack does not match
-bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, void* responsePacket, uint16_t resLen, int retries)
-{
+bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* requestPacket, uint16_t reqLen, void* responsePacket, uint16_t resLen, int retries){
 	bool gotResponse = false;
 	//loop until no retires are left or until successfully acked.
-	for(int transmission = 1; (transmission <= retries) && !gotResponse ; transmission++)
-	{
+	for(int transmission = 1; (transmission <= retries) && !gotResponse ; transmission++){
 		gotResponse = sendRequest(nodeId, messageType, requestPacket, reqLen, responsePacket, resLen);
 	}
-
 	return gotResponse;
 }
 
@@ -138,8 +128,7 @@ void RF24SN::handlePublishMessage(void){
 }
 
 
-bool RF24SN::waitForPacket(uint8_t type, void* responsePacket, uint16_t resLen)
-{
+bool RF24SN::waitForPacket(uint8_t type, void* responsePacket, uint16_t resLen){
 	//wait until response is available or until timeout
 	//the timeout period is random as to minimize repeated collisions.
 	unsigned long started_waiting_at = millis();

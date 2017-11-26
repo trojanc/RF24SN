@@ -82,8 +82,7 @@ typedef struct {
 
 typedef void (*messageHandler)(RF24SNMessage&);
 
-class RF24SN
-{
+class RF24SN{
 public:
 
 	/**
