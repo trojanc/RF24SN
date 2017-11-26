@@ -7,15 +7,22 @@ RF24SNGateway::RF24SNGateway(RF24* radio, RF24Network* network, RF24SNConfig* co
 
 void RF24SNGateway::begin(void){
 	RF24SN::begin();
-	// TODO is this still required?
-	for(int clientIndex = 0 ; clientIndex < RF24SN_MAX_CLIENTS; clientIndex++){
+}
+
+void RF24SNGateway::resetSubscriptions(void)
+{
+	for(int clientIndex = 0 ; clientIndex < clientCount; clientIndex++){
 		for(int topicIndex = 0 ; topicIndex < RF24SN_MAX_CLIENT_TOPICS; topicIndex++){
 			clients[clientIndex].topics[topicIndex].topicName[0] = '\0';
 		}
+		clients[clientIndex].clientId = 0;
+		clients[clientIndex].topicCount = 0;
 	}
+	clientCount = 0;
 }
 
-void RF24SNGateway::handleSubscribe(void){
+void RF24SNGateway::handleSubscribe(void)
+{
 	RF24NetworkHeader header;
 	RF24SNSubscribeRequest subscribeRequest;
 
@@ -101,8 +108,19 @@ void RF24SNGateway::handleSubscribe(void){
 					Serial.println(topicId, DEC);
 				);
 			}
+			else{
+				IF_RF24SN_DEBUG(
+					Serial.println(F("Tpc reg f"));
+				);
+				return; // TODO implement below
+				//				RF24NetworkHeader responseHeader(header.from_node, RF24SN_SUBNACK);
+				//				_network->write(responseHeader, NULL, 0);
+			}
 		}else{
 			IF_RF24SN_DEBUG(Serial.println(F("tpc mx")););
+			// TODO implement below
+			//			RF24NetworkHeader responseHeader(header.from_node, RF24SN_SUBNACK);
+			//			_network->write(responseHeader, NULL, 0);
 			return;
 		}
 	}
@@ -124,7 +142,7 @@ void RF24SNGateway::handleSubscribe(void){
 
 bool RF24SNGateway::handleMessage(bool swallowInvalid){
 	bool handled = RF24SN::handleMessage(false);
-	 if(!handled){
+	if(!handled){
 		RF24NetworkHeader header;
 		_network->peek(header);
 		if(header.type == RF24SN_SUBSCRIBE){
@@ -135,8 +153,8 @@ bool RF24SNGateway::handleMessage(bool swallowInvalid){
 			RF24NetworkHeader requestHeader;
 			_network->read(requestHeader, NULL, 0);
 		}
-	 }
-	 return handled;
+	}
+	return handled;
 }
 
 bool RF24SNGateway::checkSubscription(const char* topic, float value){

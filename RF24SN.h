@@ -34,6 +34,7 @@ typedef enum {
 	RF24SN_PUBACK = 0x0D,
 	RF24SN_SUBSCRIBE = 0x12,
 	RF24SN_SUBACK = 0x13,
+	RF24SN_SUBNACK = 0x14, // Subscribe failed
 	RF24SN_PINGREQ = 0x16,
 	RF24SN_PINGRES = 0x17
 } MsgTypes;
