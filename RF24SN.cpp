@@ -26,7 +26,7 @@ void RF24SN::begin(){
 	_network->begin(_config->radioChannel, _config->nodeAddress);
 	_radio->setDataRate(_config->radioDatarate);
 	_radio->setPALevel(_config->radioPaLevel);
-	_radio->setAutoAck(false);
+	_radio->setAutoAck(true);
 }
 
 byte RF24SN::subscribe(const char* topic){
