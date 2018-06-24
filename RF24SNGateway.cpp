@@ -227,7 +227,14 @@ bool RF24SNGateway::checkSubscription(const char* topic, float value){
 	);
 	bool hasClient = false;
 	for(int clientIndex = 0 ; clientIndex < RF24SN_MAX_CLIENTS; clientIndex++){
+		IF_RF24SN_DEBUG(
+			Serial.print(F(" cidx "));
+			Serial.print(clientIndex, DEC);
+			Serial.print(F(" tpcs "));
+			Serial.println(clients[clientIndex].topicCount, DEC);
+		);
 		for(int topicIndex = 0 ; topicIndex < clients[clientIndex].topicCount; topicIndex++){
+
 			if(strcmp(clients[clientIndex].topics[topicIndex].topicName, topic) == 0){
 				IF_RF24SN_DEBUG(
 					Serial.print(F("fwd sbr "));
@@ -238,7 +245,11 @@ bool RF24SNGateway::checkSubscription(const char* topic, float value){
 					Serial.println(clients[clientIndex].clientId, DEC);
 				);
 				RF24SNPacket requestPacket{clients[clientIndex].topics[topicIndex].topicId, value};
-				sendRequest(clients[clientIndex].clientId, RF24SN_PUBLISH, &requestPacket, sizeof(RF24SNPacket), NULL, 0);
+				bool success = sendRequest(clients[clientIndex].clientId, RF24SN_PUBLISH, &requestPacket, sizeof(RF24SNPacket), NULL, 0, 3);
+				IF_RF24SN_DEBUG(
+					Serial.print(F("fwd s "));
+					Serial.println(success, DEC);
+				);
 				hasClient = true;
 			}
 		}
