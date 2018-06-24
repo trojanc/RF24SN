@@ -76,7 +76,7 @@ bool RF24SN::sendRequest(uint16_t nodeId, uint8_t messageType, const void* reque
 	if(!_network->write(networkHeader, requestPacket, reqLen)){
 		return false;
 	}
-	return waitForPacket(getAckType(networkHeader.type), responsePacket, resLen);;
+	return waitForPacket(getAckType(networkHeader.type), responsePacket, resLen);
 }
 
 //send the packet to base, wait for ack-packet received back and check it, optionally resent if ack does not match
