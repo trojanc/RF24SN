@@ -13,6 +13,20 @@
 #define RF24SN_MAX_CLIENT_TOPICS 2
 #endif
 
+// Timeout without any messages before a client is deregistered
+#ifndef RF24SN_CLIENT_INACTIVE_TIMEOUT
+#define RF24SN_CLIENT_INACTIVE_TIMEOUT 60000
+#endif
+
+
+// Timeout before checking for inactive clients
+#ifndef RF24SN_CLIENT_INACTIVE_DELAY
+#define RF24SN_CLIENT_INACTIVE_DELAY 10000
+#endif
+
+#define RF24SN_CLIENT_EMPTY_ID 65535
+#define RF24SN_CLIENT_NOT_FOUND_IDX 255
+
 /**
  * A struct representing a topic that has been registered
  */
@@ -23,7 +37,7 @@ struct RF24SNTopicRegistration {
 	char topicName[RF24SN_TOPIC_LENGTH];
 
 	/**
-	 * ID of the topic on the RF24SN protocal
+	 * ID of the topic on the RF24SN protocol
 	 */
 	uint8_t topicId = 0;
 };
@@ -36,6 +50,11 @@ struct RF24SNClient{
 	 * ID of the client
 	 */
 	uint16_t clientId = 0;
+
+	/**
+	 * Last time this client responded
+	 */
+	uint32_t lastActivity = 0;
 
 	/**
 	 * Array of registered topics for this client
@@ -65,9 +84,11 @@ public:
 	RF24SNGateway(RF24* radio, RF24Network* network, RF24SNConfig* config, messageHandler onMessageHandler, subsribeHandler onSubsribeHandler);
 
 	/**
-	 * Begin the gatewat
+	 * Begin the gateway
 	 */
 	void begin(void);
+
+	void update(void);
 
 	/**
 	 * Check which clients are subscribed to the topic, and forward the value to them
@@ -76,10 +97,9 @@ public:
 
 
 	/**
-	 * Clears all saved subscriptions. This should be called when the connection to the
-	 * MQTT server is reset, because all subscriptions are lost from the server.
+	 * Clears all registered clients
 	 */
-	void resetSubscriptions(void);
+	void resetClients(void);
 protected:
 
 	/**
@@ -93,9 +113,9 @@ protected:
 	RF24SNClient clients[RF24SN_MAX_CLIENTS];
 
 	/**
-	 * Number of clients that has registered
+	 * Last time inactive clients was tested
 	 */
-	byte clientCount = 0;
+	uint32_t lastInactiveCheck = 0;
 
 	/**
 	 * Handle a subscribe request
@@ -106,6 +126,17 @@ protected:
 	 * Handles any incomming message
 	 */
 	bool handleMessage(bool swallowInvalid = true);
+
+private:
+	void checkInactiveClients(void);
+
+	byte findClient(uint16_t clientId);
+
+	byte registerClient(uint16_t clientId);
+
+	void resetClient(byte clientIndex);
+
+	void updateClientActivity(uint16_t clientId);
 };
 
 #endif

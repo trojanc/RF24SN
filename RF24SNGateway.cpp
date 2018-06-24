@@ -9,16 +9,84 @@ void RF24SNGateway::begin(void){
 	RF24SN::begin();
 }
 
-void RF24SNGateway::resetSubscriptions(void)
-{
-	for(int clientIndex = 0 ; clientIndex < clientCount; clientIndex++){
-		for(int topicIndex = 0 ; topicIndex < RF24SN_MAX_CLIENT_TOPICS; topicIndex++){
-			clients[clientIndex].topics[topicIndex].topicName[0] = '\0';
+void RF24SNGateway::update(void){
+	RF24SN::update();
+	RF24SNGateway::checkInactiveClients();
+}
+
+void RF24SNGateway::checkInactiveClients(void){
+	// Check clients
+	if(RF24SN::hasTimedout(lastInactiveCheck, RF24SN_CLIENT_INACTIVE_DELAY)){
+		IF_RF24SN_DEBUG(
+			Serial.print(F("Chk i/a "));
+			Serial.println(lastInactiveCheck);
+		);
+		lastInactiveCheck = millis();
+		for(byte clientIndex = 0 ; clientIndex < RF24SN_MAX_CLIENTS; clientIndex++){
+			if(clients[clientIndex].clientId != RF24SN_CLIENT_EMPTY_ID
+				&& RF24SN::hasTimedout(clients[clientIndex].lastActivity, RF24SN_CLIENT_INACTIVE_TIMEOUT)){
+
+				IF_RF24SN_DEBUG(
+					Serial.print(F("Clnt t/o: "));
+					Serial.println(clients[clientIndex].clientId, DEC);
+				);
+				RF24SNGateway::resetClient(clientIndex);
+			}
 		}
-		clients[clientIndex].clientId = 0;
-		clients[clientIndex].topicCount = 0;
 	}
-	clientCount = 0;
+}
+
+void RF24SNGateway::resetClient(byte clientIndex){
+	IF_RF24SN_DEBUG(
+		Serial.print(F("rst clnt : "));
+		Serial.println(clientIndex, DEC);
+	);
+	for(int topicIndex = 0 ; topicIndex < RF24SN_MAX_CLIENT_TOPICS; topicIndex++){
+		clients[clientIndex].topics[topicIndex].topicName[0] = '\0';
+	}
+	clients[clientIndex].clientId = RF24SN_CLIENT_EMPTY_ID;
+	clients[clientIndex].topicCount = 0;
+}
+
+void RF24SNGateway::resetClients(void){
+	for(int clientIndex = 0 ; clientIndex < RF24SN_MAX_CLIENTS; clientIndex++){
+		RF24SNGateway::resetClient(clientIndex);
+	}
+}
+
+byte RF24SNGateway::findClient(uint16_t clientId){
+	byte clientIndex = RF24SN_CLIENT_NOT_FOUND_IDX;
+	for(byte idx = 0 ; idx < RF24SN_MAX_CLIENTS; idx++){
+		if(clients[idx].clientId == clientId){
+			clientIndex = idx;
+			break;
+		}
+	}
+	return clientIndex;
+}
+
+byte RF24SNGateway::registerClient(uint16_t clientId){
+	IF_RF24SN_DEBUG(Serial.println(F("Clnt reg : ")););
+	byte clientIndex = RF24SN_CLIENT_NOT_FOUND_IDX;
+	for(byte idx = 0 ; idx < RF24SN_MAX_CLIENTS; idx++){
+		// See if we've got a free slot
+		if(clients[idx].clientId == RF24SN_CLIENT_EMPTY_ID){
+			clients[idx].clientId = clientId;
+			clientIndex = idx;
+			break;
+		}
+	}
+
+	if(clientIndex == RF24SN_CLIENT_NOT_FOUND_IDX){
+		IF_RF24SN_DEBUG(Serial.println(F("Clnt mx")););
+	}
+	else {
+		IF_RF24SN_DEBUG(
+			Serial.print(F("Clnt reg : "));
+			Serial.println(clientIndex, DEC);
+		);
+	}
+	return clientIndex;
 }
 
 void RF24SNGateway::handleSubscribe(void)
@@ -36,45 +104,29 @@ void RF24SNGateway::handleSubscribe(void)
 		Serial.println(subscribeRequest.topicName);
 	);
 
-	// Index of this client in the list of current clients
-	int clientIndex = 0;
-
-	// Flag if we have found the user yet
-	bool found = false;
-
-	// Id of the topic to return to the client
-	byte topicId = 0;
-
 	// Try and find existing client
-	IF_RF24SN_DEBUG(Serial.print(F("Clnts"));Serial.println(clientCount, DEC););
-	for( ; clientIndex < clientCount; clientIndex++){
-		if(clients[clientIndex].clientId == header.from_node){
-			found = true;
-			break;
-		}
-	}
+	byte clientIndex = RF24SNGateway::findClient(header.from_node);
+
 	IF_RF24SN_DEBUG(
 		Serial.print(F("Clnt fnd: "));
-		Serial.print(found);
-		Serial.print(F(" : "));
-		Serial.println(clientCount, DEC);
+		Serial.println(clientIndex, DEC);
 	);
+
 	// register new client
-	if(!found){
-		if(clientCount < RF24SN_MAX_CLIENTS){
-			clientCount++;
-			clients[clientIndex].clientId = header.from_node;
-			IF_RF24SN_DEBUG(
-				Serial.print(F("Clnt reg : "));
-				Serial.println(clientIndex, DEC);
-				Serial.print(F("Clnt cnt : "));
-				Serial.println(clientCount, DEC);
-			);
-		}else{
-			IF_RF24SN_DEBUG(Serial.println(F("Clnt mx")););
+	if(clientIndex == RF24SN_CLIENT_NOT_FOUND_IDX){
+		clientIndex = RF24SNGateway::registerClient(header.from_node);
+
+		// If clientIdx is still -1 there is no more space for clients
+		if(clientIndex == -1){
 			return;
 		}
 	}
+
+	// Update the last time we got a request from the client
+	clients[clientIndex].lastActivity = millis();
+
+	// Id of the topic to return to the client
+	byte topicId = 0;
 
 	// Index of the topic for the current client
 	int topicIndex = 0;
@@ -140,11 +192,22 @@ void RF24SNGateway::handleSubscribe(void)
 	_network->write(responseHeader, &response, sizeof(RF24SNSubscribeResponse));
 }
 
+void RF24SNGateway::updateClientActivity(uint16_t clientId){
+	// Try and find existing client
+	byte clientIndex = RF24SNGateway::findClient(clientId);
+	if(clientIndex != RF24SN_CLIENT_NOT_FOUND_IDX){
+		clients[clientIndex].lastActivity = millis();
+	}
+}
+
 bool RF24SNGateway::handleMessage(bool swallowInvalid){
+	RF24NetworkHeader header;
+	_network->peek(header);
+	updateClientActivity(header.from_node);
+
 	bool handled = RF24SN::handleMessage(false);
+
 	if(!handled){
-		RF24NetworkHeader header;
-		_network->peek(header);
 		if(header.type == RF24SN_SUBSCRIBE){
 			RF24SNGateway::handleSubscribe();
 			handled = true;
@@ -163,7 +226,7 @@ bool RF24SNGateway::checkSubscription(const char* topic, float value){
 		Serial.println(topic);
 	);
 	bool hasClient = false;
-	for(int clientIndex = 0 ; clientIndex < clientCount; clientIndex++){
+	for(int clientIndex = 0 ; clientIndex < RF24SN_MAX_CLIENTS; clientIndex++){
 		for(int topicIndex = 0 ; topicIndex < clients[clientIndex].topicCount; topicIndex++){
 			if(strcmp(clients[clientIndex].topics[topicIndex].topicName, topic) == 0){
 				IF_RF24SN_DEBUG(

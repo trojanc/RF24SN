@@ -155,6 +155,11 @@ protected:
 	 */
 	void handlePublishMessage(void);
 
+	/**
+	 * Check if a timeout has passed
+	 */
+	bool hasTimedout(uint32_t from, uint32_t period);
+
 private:
 
 #ifdef RF24SN_HAS_LEDS

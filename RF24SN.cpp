@@ -29,6 +29,10 @@ void RF24SN::begin(){
 	_radio->setAutoAck(true);
 }
 
+bool RF24SN::hasTimedout(uint32_t from, uint32_t period){
+	return ((uint32_t)(millis() - from)) >= period;
+}
+
 byte RF24SN::subscribe(const char* topic){
 	byte response = RF24SN_RSP_FAILED;
 	RF24SNSubscribeRequest sendPacket;
@@ -137,12 +141,11 @@ bool RF24SN::waitForPacket(uint8_t type, void* responsePacket, uint16_t resLen){
 	//wait until response is available or until timeout
 	//the timeout period is random as to minimize repeated collisions.
 	unsigned long started_waiting_at = millis();
-	bool timeout = false;
-	int random_wait_time = random(2000,3000);
+	int random_wait_time = random(2000, 3000);
 
 	RF24NetworkHeader header;
 
-	while(!timeout){
+	while(!RF24SN::hasTimedout(started_waiting_at, random_wait_time)){
 		// Keep updating the network
 		_network->update();
 
@@ -160,11 +163,6 @@ bool RF24SN::waitForPacket(uint8_t type, void* responsePacket, uint16_t resLen){
 			else{
 				handleMessage(true);
 			}
-		}
-
-		// Check if we need to give up
-		if (millis() - started_waiting_at > random_wait_time ){
-			timeout = true;
 		}
 	}
 
